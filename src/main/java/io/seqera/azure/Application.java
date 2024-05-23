@@ -36,7 +36,7 @@ public class Application {
         AzureProfile profile = new AzureProfile(tenantId,subscriptionId, AzureEnvironment.AZURE);    // Assume Global Cloud is used
         BatchManager batchManager = BatchManager
                 .authenticate(defaultCredential, profile);
-        Set<String> pools = batchManager.pools().listByBatchAccount("nf-azure-test", "nfbatchtest")
+        Set<String> pools = batchManager.pools().listByBatchAccount("seqera_rg", "seqeralabs")
                 .stream().map(it -> it.name()).collect(Collectors.toSet());
         pools.forEach(System.out::println);
 
