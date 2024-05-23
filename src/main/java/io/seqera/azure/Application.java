@@ -1,8 +1,13 @@
 package io.seqera.azure;
 
 import com.azure.core.http.rest.PagedIterable;
+import com.azure.core.management.AzureEnvironment;
+import com.azure.core.management.profile.AzureProfile;
 import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.resourcemanager.batch.BatchManager;
+import com.azure.resourcemanager.batch.implementation.PoolsImpl;
+import com.azure.resourcemanager.batch.models.Pools;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobContainerItem;
@@ -21,6 +26,21 @@ public class Application {
                 .managedIdentityClientId(managedIdentity)
                 .build();
 
+        loadBuckets(defaultCredential);
+        loadPools(defaultCredential);
+    }
+
+    private static void loadPools(DefaultAzureCredential defaultCredential){
+        AzureProfile profile = new AzureProfile(AzureEnvironment.AZURE);    // Assume Global Cloud is used
+        BatchManager batchManager = BatchManager
+                .authenticate(defaultCredential, profile);
+        Set<String> pools = batchManager.pools().listByBatchAccount("nf-azure-test", "nfbatchtest")
+                .stream().map(it -> it.name()).collect(Collectors.toSet());
+        pools.forEach(System.out::println);
+
+    }
+
+    private static void loadBuckets(DefaultAzureCredential defaultCredential) {
         BlobServiceClient client = new BlobServiceClientBuilder()
                 .credential(defaultCredential)
                 .endpoint("https://seqeralabs.blob.core.windows.net")
