@@ -60,13 +60,13 @@ public class Application {
         final TokenRequestContext tokenContext = new TokenRequestContext()
                 .setTenantId(config.getTenantId())
                 .addScopes(String.format("%s/.default", AzureEnvironment.AZURE.getManagementEndpoint()));
-        log.debug("[AZURE BATCH] Tenant ID: ${tokenContext.getTenantId()}");
+        log.info("[AZURE BATCH] Tenant ID: ${tokenContext.getTenantId()}");
         AccessToken token = credential.getTokenSync(tokenContext);
 
         BatchApplicationTokenCredentials batchApplicationTokenCredentials = new BatchApplicationTokenCredentials(
                 config.getBatchEndpointUrl(), // base URL
                 config.getManagedIdentityId(),           // client ID
-                token.getToken(), // secret
+                null,
                 config.getTenantId(), // domain (tenant?)
                 batchEndpoint, // batchEndpoint
                 authenticationEndpoint // authenticationEndpoint
