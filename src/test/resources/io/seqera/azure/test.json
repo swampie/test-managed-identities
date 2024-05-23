@@ -1,3 +1,6 @@
 {
-
+  "managedIdentityId": "managedIdentityId",
+  "subscriptionId": "subscriptionId",
+  "tenantId": "tenantId",
+  "batchAccountName": "batch name"
 }
