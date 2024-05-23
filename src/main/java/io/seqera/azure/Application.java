@@ -19,6 +19,8 @@ public class Application {
 
     public static void main(String[] args) {
         String managedIdentity = args[0];
+        String tenantId = args[1];
+        String subscriptionId = args[2];
         if(managedIdentity == null){
             System.exit(-1);
         }
@@ -27,11 +29,11 @@ public class Application {
                 .build();
 
         loadBuckets(defaultCredential);
-        loadPools(defaultCredential);
+        loadPools(defaultCredential, tenantId, subscriptionId);
     }
 
-    private static void loadPools(DefaultAzureCredential defaultCredential){
-        AzureProfile profile = new AzureProfile(AzureEnvironment.AZURE);    // Assume Global Cloud is used
+    private static void loadPools(DefaultAzureCredential defaultCredential,String tenantId, String subscriptionId){
+        AzureProfile profile = new AzureProfile(tenantId,subscriptionId, AzureEnvironment.AZURE);    // Assume Global Cloud is used
         BatchManager batchManager = BatchManager
                 .authenticate(defaultCredential, profile);
         Set<String> pools = batchManager.pools().listByBatchAccount("nf-azure-test", "nfbatchtest")
