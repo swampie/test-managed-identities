@@ -2,6 +2,7 @@ package io.seqera.azure;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
+import com.azure.core.http.HttpResponse;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.profile.AzureProfile;
@@ -15,15 +16,24 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobContainerItem;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.microsoft.aad.adal4j.AuthenticationContext;
+import com.microsoft.aad.adal4j.AuthenticationResult;
 import com.microsoft.azure.batch.BatchClient;
 import com.microsoft.azure.batch.auth.BatchApplicationTokenCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.netty.http.client.HttpClient;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.charset.Charset;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class Application {
@@ -40,8 +50,34 @@ public class Application {
                 .managedIdentityClientId(config.getManagedIdentityId())
                 .build();
 
+        checkConfig(config);
         loadBuckets(defaultCredential);
         loadPools(config);
+    }
+
+    private static void checkConfig(Config config) throws MalformedURLException {
+        String authority = "https://login.microsoftonline.com/{tenantId}";
+        String resourceUrl = "https://management.azure.com";
+        ExecutorService service = Executors.newFixedThreadPool(1);
+        final DefaultAzureCredentialBuilder credentialBuilder = new DefaultAzureCredentialBuilder();
+        if( config.getManagedIdentityId() != null) {
+            log.debug("[AZURE BATCH] Client ID: ${clientId}");
+            credentialBuilder.managedIdentityClientId(config.getManagedIdentityId());
+        }
+        DefaultAzureCredential credential = credentialBuilder.build();
+        final TokenRequestContext tokenContext = new TokenRequestContext()
+                .setTenantId(config.getTenantId())
+
+                .addScopes(String.format("%s/.default", AzureEnvironment.AZURE.getManagementEndpoint()));
+        log.info("[AZURE BATCH] Tenant ID: ${tokenContext.getTenantId()}");
+        AccessToken token = credential.getTokenSync(tokenContext);
+        HttpClient client = HttpClient.create();
+        String response = client.baseUrl("https://management.azure.com/subscriptions?api-version=2016-06-01")
+                .headers((it) -> it.set("Authorization", "Bearer" + token.getToken())).get().responseContent()
+                .aggregate()
+                .asString()
+                .block();
+        System.out.println(response);
     }
 
 
@@ -59,6 +95,7 @@ public class Application {
         DefaultAzureCredential credential = credentialBuilder.build();
         final TokenRequestContext tokenContext = new TokenRequestContext()
                 .setTenantId(config.getTenantId())
+
                 .addScopes(String.format("%s/.default", AzureEnvironment.AZURE.getManagementEndpoint()));
         log.info("[AZURE BATCH] Tenant ID: ${tokenContext.getTenantId()}");
         AccessToken token = credential.getTokenSync(tokenContext);
@@ -66,7 +103,7 @@ public class Application {
         BatchApplicationTokenCredentials batchApplicationTokenCredentials = new BatchApplicationTokenCredentials(
                 config.getBatchEndpointUrl(), // base URL
                 config.getManagedIdentityId(),           // client ID
-                null,
+                token.getToken(), // secret
                 config.getTenantId(), // domain (tenant?)
                 batchEndpoint, // batchEndpoint
                 authenticationEndpoint // authenticationEndpoint
