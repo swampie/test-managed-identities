@@ -43,7 +43,7 @@
     <dependency>
       <groupId>com.microsoft.azure</groupId>
       <artifactId>azure-client-runtime</artifactId>
-      <version>1.6.4</version>
+      <version>1.7.14</version>
     </dependency>
     <dependency>
       <groupId>com.azure</groupId>
