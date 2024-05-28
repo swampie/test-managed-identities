@@ -40,7 +40,7 @@ public class Application {
 
     private static final Logger log = LoggerFactory.getLogger(Application.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception{
 
         Config config = Config.loadConfig(args[0]);
         if(config == null){
@@ -72,8 +72,11 @@ public class Application {
         log.info("[AZURE BATCH] Tenant ID: ${tokenContext.getTenantId()}");
         AccessToken token = credential.getTokenSync(tokenContext);
         HttpClient client = HttpClient.create();
-        String response = client.baseUrl("https://management.azure.com/subscriptions?api-version=2016-06-01")
-                .headers((it) -> it.set("Authorization", "Bearer" + token.getToken())).get().responseContent()
+        String response = client
+                .headers((it) -> it.set("Authorization", "Bearer" + token.getToken()))
+                .get()
+                .uri("https://management.azure.com/subscriptions?api-version=2016-06-01")
+                .responseContent()
                 .aggregate()
                 .asString()
                 .block();
@@ -102,7 +105,7 @@ public class Application {
 
         BatchApplicationTokenCredentials batchApplicationTokenCredentials = new BatchApplicationTokenCredentials(
                 config.getBatchEndpointUrl(), // base URL
-                config.getManagedIdentityId(),           // client ID
+                config.getManagedIdentityId(),    // client ID
                 token.getToken(), // secret
                 config.getTenantId(), // domain (tenant?)
                 batchEndpoint, // batchEndpoint
