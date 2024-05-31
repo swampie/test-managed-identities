@@ -58,7 +58,7 @@ public class Application {
                     .credential(new ManagedIdentityCredentialBuilder().clientId(config.getManagedIdentityId()).build())
                 .endpoint(config.getBatchEndpointUrl())
                 .buildClient();
-        client.listPools().stream().forEach(it -> System.out.println(it.getDisplayName()));
+        client.listPools().stream().forEach(it -> System.out.println(it.getId()));
 
     }
 
