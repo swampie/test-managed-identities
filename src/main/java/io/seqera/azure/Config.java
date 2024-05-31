@@ -1,11 +1,11 @@
 package io.seqera.azure;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.nio.file.Paths;
 
 public class Config {
@@ -69,12 +69,11 @@ public class Config {
     }
 
     protected static Config loadConfig(String configurationPath) {
-        Gson gson = new GsonBuilder().create();
+        ObjectMapper om = new ObjectMapper();
         try {
-            System.out.println();
             File file = Paths.get(configurationPath).toFile();
-            return gson.fromJson(new FileReader(file), Config.class);
-        } catch (FileNotFoundException e) {
+            return om.readValue(new FileReader(file), Config.class);
+        } catch (IOException e) {
             return null;
         }
 
