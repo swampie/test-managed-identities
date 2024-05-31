@@ -1,32 +1,21 @@
 package io.seqera.azure;
 
+import com.azure.compute.batch.BatchClientBuilder;
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
-import com.azure.core.http.HttpResponse;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.management.AzureEnvironment;
-import com.azure.core.management.profile.AzureProfile;
 import com.azure.identity.DefaultAzureCredential;
 import com.azure.identity.DefaultAzureCredentialBuilder;
-import com.azure.resourcemanager.batch.BatchManager;
-import com.azure.resourcemanager.batch.implementation.PoolsImpl;
-import com.azure.resourcemanager.batch.models.Pools;
+import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobContainerItem;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.microsoft.aad.adal4j.AuthenticationContext;
-import com.microsoft.aad.adal4j.AuthenticationResult;
-import com.microsoft.azure.batch.BatchClient;
-import com.microsoft.azure.batch.auth.BatchApplicationTokenCredentials;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
 import reactor.netty.http.client.HttpClient;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.charset.Charset;
@@ -103,20 +92,10 @@ public class Application {
         log.info("[AZURE BATCH] Tenant ID: ${tokenContext.getTenantId()}");
         AccessToken token = credential.getTokenSync(tokenContext);
 
-        BatchApplicationTokenCredentials batchApplicationTokenCredentials = new BatchApplicationTokenCredentials(
-                config.getBatchEndpointUrl(), // base URL
-                config.getManagedIdentityId(),    // client ID
-                token.getToken(), // secret
-                config.getTenantId(), // domain (tenant?)
-                batchEndpoint, // batchEndpoint
-                authenticationEndpoint // authenticationEndpoint
-        );
-        BatchClient client = BatchClient.open(batchApplicationTokenCredentials);
-        try {
-            client.poolOperations().listPools().stream().forEach(it -> System.out.println(it.displayName()));
-        } catch (IOException e) {
-            log.error("Unable to execute list pools", e);
-        }
+
+        var client = new BatchClientBuilder().credential(new ManagedIdentityCredentialBuilder().clientId(config.getManagedIdentityId()).build()).buildClient();
+        client.listPools().stream().forEach(it -> System.out.println(it.getDisplayName()));
+
     }
 
     /*private static void loadPools(DefaultAzureCredential defaultCredential,String tenantId, String subscriptionId){
