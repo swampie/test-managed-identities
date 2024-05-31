@@ -39,61 +39,25 @@ public class Application {
                 .managedIdentityClientId(config.getManagedIdentityId())
                 .build();
 
-        checkConfig(config);
         loadBuckets(defaultCredential);
         loadPools(config);
     }
 
-    private static void checkConfig(Config config) throws MalformedURLException {
-        String authority = "https://login.microsoftonline.com/{tenantId}";
-        String resourceUrl = "https://management.azure.com";
-        ExecutorService service = Executors.newFixedThreadPool(1);
-        final DefaultAzureCredentialBuilder credentialBuilder = new DefaultAzureCredentialBuilder();
-        if( config.getManagedIdentityId() != null) {
-            log.debug("[AZURE BATCH] Client ID: ${clientId}");
-            credentialBuilder.managedIdentityClientId(config.getManagedIdentityId());
-        }
-        DefaultAzureCredential credential = credentialBuilder.build();
-        final TokenRequestContext tokenContext = new TokenRequestContext()
-                .setTenantId(config.getTenantId())
-
-                .addScopes(String.format("%s/.default", AzureEnvironment.AZURE.getManagementEndpoint()));
-        log.info("[AZURE BATCH] Tenant ID: ${tokenContext.getTenantId()}");
-        AccessToken token = credential.getTokenSync(tokenContext);
-        HttpClient client = HttpClient.create();
-        String response = client
-                .headers((it) -> it.set("Authorization", "Bearer" + token.getToken()))
-                .get()
-                .uri("https://management.azure.com/subscriptions?api-version=2016-06-01")
-                .responseContent()
-                .aggregate()
-                .asString()
-                .block();
-        System.out.println(response);
-    }
 
 
     private static void loadPools(Config config) {
         log.debug("[AZURE BATCH] Creating Azure Batch client using Managed Identity credentials");
 
-        final String batchEndpoint = "https://batch.core.windows.net/";
-        final String authenticationEndpoint = "https://management.core.windows.net/";
-
         final DefaultAzureCredentialBuilder credentialBuilder = new DefaultAzureCredentialBuilder();
         if( config.getManagedIdentityId() != null) {
             log.debug("[AZURE BATCH] Client ID: ${clientId}");
             credentialBuilder.managedIdentityClientId(config.getManagedIdentityId());
         }
-        DefaultAzureCredential credential = credentialBuilder.build();
-        final TokenRequestContext tokenContext = new TokenRequestContext()
-                .setTenantId(config.getTenantId())
 
-                .addScopes(String.format("%s/.default", AzureEnvironment.AZURE.getManagementEndpoint()));
-        log.info("[AZURE BATCH] Tenant ID: ${tokenContext.getTenantId()}");
-        AccessToken token = credential.getTokenSync(tokenContext);
-
-
-        var client = new BatchClientBuilder().credential(new ManagedIdentityCredentialBuilder().clientId(config.getManagedIdentityId()).build()).buildClient();
+        var client = new BatchClientBuilder()
+                    .credential(new ManagedIdentityCredentialBuilder().clientId(config.getManagedIdentityId()).build())
+                .endpoint(config.getBatchEndpointUrl())
+                .buildClient();
         client.listPools().stream().forEach(it -> System.out.println(it.getDisplayName()));
 
     }
